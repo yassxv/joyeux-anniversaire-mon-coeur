@@ -1,0 +1,296 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Rêvons en grand - Étape 3</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --muted:#6b7280; --accent:#ff6b4a; --bg:#fffaf0;
+    --card:#ffffff; --shadow: rgba(16,24,40,0.08);
+    --ok:#059669; --bad:#b91c1c; --info:#1e40af;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{
+    font-family:Inter,system-ui,Arial,sans-serif;
+    background:linear-gradient(180deg,#fffaf0 0%, #fff6ec 100%);
+    padding:18px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+  }
+  .card{
+    width:100%;
+    max-width:760px;
+    background:var(--card);
+    border-radius:14px;
+    padding:22px;
+    box-shadow:0 14px 34px var(--shadow);
+    text-align:center;
+  }
+  h2{margin:0 0 12px;font-weight:700;font-size:22px;color:#0f172a}
+  p.lead{color:#374151;margin:6px 0 14px}
+  .panel{
+    text-align:left;
+    background:#fffef6;
+    border-radius:12px;
+    padding:12px 14px;
+    border-left:6px solid #ffd7bf;
+    margin-bottom:12px;
+    color:#92400e;
+    line-height:1.45;
+    font-size:15px;
+  }
+  .status{
+    margin-top:12px;
+    padding:12px;
+    border-radius:10px;
+    font-weight:700;
+    display:block;
+  }
+  .status.info{background:#dbeafe;color:var(--info)}
+  .status.ok{background:#d1fae5;color:var(--ok)}
+  .status.bad{background:#fee2e2;color:var(--bad)}
+  .distance{
+    font-size:16px;
+    color:#111827;
+    margin-top:8px;
+    font-weight:700;
+  }
+  .distance.secondary{font-size:15px;color:#374151;margin-top:6px;font-weight:600;display:none}
+  .controls{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:14px}
+  .btn{
+    background:var(--accent); color:#fff; border:0;padding:10px 14px;border-radius:12px;font-weight:700;
+    cursor:pointer; box-shadow:0 8px 20px rgba(16,24,40,0.06); font-size:14px;
+  }
+  .btn.ghost{background:transparent;color:#333;border:1px solid #e6e6e6}
+  input[type="text"]{
+    width:100%; padding:12px;border-radius:10px;border:1px solid #e6e6e6;font-size:15px;margin-top:10px;
+  }
+  .charadeBox{
+    margin-top:14px;
+    background:linear-gradient(180deg,#fff,#fff8f2);
+    padding:12px;border-radius:12px;border:1px solid #f3e2d9;
+    display:none;
+  }
+  .qrContainer{margin-top:14px;display:none;text-align:center}
+  .qrContainer img{max-width:260px;border-radius:12px;box-shadow:0 8px 30px rgba(16,24,40,0.07)}
+  .note{font-size:13px;color:var(--muted);margin-top:8px}
+  .hidden{display:none}
+  @media (max-width:760px){
+    .card{padding:16px}
+    .controls{flex-direction:column}
+  }
+</style>
+</head>
+<body>
+  <div class="card" role="main" aria-labelledby="title">
+    <h2 id="title">Rendez-vous là où on s’est le plus disputé</h2>
+    <p id="distanceText" class="lead">Vérification de la position...</p>
+    <div id="status" class="status info">active ta loc petit caca</div>
+
+    <div id="charadeSection" class="charadeBox">
+      <p style="margin:0"><strong>Énigme :</strong> <em> Ne regarde pas que les mots mais aussi ce qui les composent, ainsi que leur symétrique. La voici : <strong> Qv g'zrnv nlm xlvfi </strong> </em></p>
+      <input type="text" id="answer" placeholder="Ta réponse..." aria-label="Réponse à la charade"/>
+      <div style="display:flex;gap:10px;justify-content:center;margin-top:10px">
+        <button id="validateBtn" class="btn">Valider</button>
+        <button id="hintBtn" class="btn ghost">Indice</button>
+      </div>
+      <div id="charadeMsg" style="margin-top:10px;font-weight:700"></div>
+    </div>
+
+    <div id="qrContainer" class="qrContainer"></div>
+
+    <div id="distances" style="margin-top:10px">
+      <div id="distanceFirst" class="distance">Distance vers le premier lieu : — m</div>
+      <div id="distanceSecond" class="distance secondary">Distance vers le second lieu : — m</div>
+    </div>
+
+    <p class="note" id="accuracyNote"></p>
+  </div>
+
+<script>
+(function(){
+  const TARGET1 = { lat: 48.8414794, lon: 2.3191836, radius: 60 };
+  const TARGET2 = { lat: 48.8708, lon: 2.3035, radius: 50 };
+  const REDIRECT = 'etape4.html';
+
+  let geoWatchId = null;
+  let charadeUnlocked = false;
+  let qrVisible = false;
+  let arrivedSecond = false;
+
+  const distanceText = document.getElementById('distanceText');
+  const statusEl = document.getElementById('status');
+  const charadeSection = document.getElementById('charadeSection');
+  const answerInp = document.getElementById('answer');
+  const validateBtn = document.getElementById('validateBtn');
+  const charadeMsg = document.getElementById('charadeMsg');
+  const hintBtn = document.getElementById('hintBtn');
+  const qrContainer = document.getElementById('qrContainer');
+  const accuracyNote = document.getElementById('accuracyNote');
+  const distanceFirstEl = document.getElementById('distanceFirst');
+  const distanceSecondEl = document.getElementById('distanceSecond');
+
+  function setStatus(text, cls){
+    statusEl.textContent = text;
+    statusEl.className = 'status ' + (cls || 'info');
+  }
+  function toRad(x){return x*Math.PI/180;}
+  function distanceMeters(lat1,lon1,lat2,lon2){
+    const R=6371000;
+    const dLat=toRad(lat2-lat1), dLon=toRad(lon2-lon1);
+    const a=Math.sin(dLat/2)*Math.sin(dLat/2)+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+  function normalize(s){ return (s||'').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s']/g,'').replace(/\s+/g,' ').trim(); }
+  function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+
+  function evaluatePosition(lat, lon, accuracy){
+    if(arrivedSecond) return;
+    const d1 = distanceMeters(lat,lon,TARGET1.lat,TARGET1.lon);
+    const d2 = distanceMeters(lat,lon,TARGET2.lat,TARGET2.lon);
+
+    if(typeof accuracy === 'number'){
+      accuracyNote.textContent = `Précision estimée : ~${Math.round(accuracy)} m`;
+    } else accuracyNote.textContent = '';
+
+    if(qrVisible){
+      distanceFirstEl.style.display = 'none';
+      distanceSecondEl.style.display = 'block';
+      distanceSecondEl.textContent = `Distance vers le second lieu : ${Math.round(d2)} m`;
+      setStatus('QR débloqué — rends-toi au second lieu.', 'info');
+
+      if(d2 <= TARGET2.radius || (typeof accuracy === 'number' && (d2 - accuracy) <= TARGET2.radius)){
+        onArrivedSecond();
+      }
+      return;
+    }
+
+    if(!charadeUnlocked){
+      distanceFirstEl.style.display = 'block';
+      distanceSecondEl.style.display = 'none';
+      distanceFirstEl.textContent = `Distance vers le premier lieu : ${Math.round(d1)} m`;
+      distanceText.textContent = `Distance restante : ${Math.round(d1)} m`;
+      setStatus(`Vérification de la position…`, 'info');
+      if(d1 <= TARGET1.radius || (typeof accuracy === 'number' && (d1 - accuracy) <= TARGET1.radius)){
+        unlockCharade();
+      } else {
+        setStatus(`Tu es à ${Math.round(d1)} m du lieu. Approche pour débloquer la charade.`, 'info');
+      }
+    } else {
+      distanceFirstEl.style.display = 'none';
+      distanceSecondEl.style.display = 'none';
+      distanceText.textContent = `Charade disponible — saisis ta réponse.`;
+      setStatus('Charade disponible — saisis ta réponse.', 'info');
+    }
+  }
+
+  function startTracking(){
+    if(!('geolocation' in navigator)){
+      setStatus('Géolocalisation non supportée sur cet appareil.', 'bad');
+      return;
+    }
+    if(geoWatchId !== null) try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+    setStatus('active ta loc petit caca', 'info');
+
+    geoWatchId = navigator.geolocation.watchPosition(pos=>{
+      const { latitude, longitude, accuracy } = pos.coords;
+      evaluatePosition(latitude, longitude, accuracy);
+    }, err=>{
+      console.warn('geo err', err);
+      if(err.code === 1) setStatus('Permission refusée — autorise la localisation.', 'bad');
+      else if(err.code === 2) setStatus('Position indisponible — active le GPS/Wi-Fi.', 'bad');
+      else if(err.code === 3) setStatus('Délai dépassé. Réessaie.', 'bad');
+    }, { enableHighAccuracy: true, maximumAge: 1500, timeout: 12000 });
+
+    setInterval(()=>{ 
+      if(!arrivedSecond) 
+        navigator.geolocation.getCurrentPosition(
+          p=>evaluatePosition(p.coords.latitude,p.coords.longitude,p.coords.accuracy),
+          ()=>{}, 
+          { enableHighAccuracy:true, maximumAge:2000, timeout:9000}
+        ); 
+    }, 4000);
+  }
+
+  function unlockCharade(){
+    if(charadeUnlocked) return;
+    charadeUnlocked = true;
+    charadeSection.style.display = 'block';
+    distanceFirstEl.style.display = 'none';
+    distanceSecondEl.style.display = 'none';
+    distanceText.textContent = 'Charade débloquée — bonne chance !';
+    setStatus('La charade est disponible — bonne chance !', 'ok');
+    vibrate([120,40,120]);
+    setTimeout(()=>{ answerInp.focus(); }, 500);
+  }
+
+  function showQR(){
+    if(qrVisible) return;
+    qrVisible = true;
+    distanceFirstEl.style.display = 'none';
+    distanceSecondEl.style.display = 'block';
+
+    qrContainer.innerHTML = `<p style="font-weight:700">C’est un peu petit non ?<br>Que dirais-tu de 800 m² rien que pour nous ?</p>
+      <img class="qr" src="https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent('https://maps.app.goo.gl/?link=https://www.google.com/maps/search/?api=1&query=' + TARGET2.lat + ',' + TARGET2.lon)}" alt="QR code secret"/>`;
+    qrContainer.style.display = 'block';
+    setStatus('QR débloqué — rends-toi au second lieu indiqué.', 'ok');
+    vibrate([200,100,200]);
+    navigator.geolocation.getCurrentPosition(
+      p=>evaluatePosition(p.coords.latitude,p.coords.longitude,p.coords.accuracy),
+      ()=>{}, 
+      { enableHighAccuracy:true, maximumAge:2000, timeout:9000}
+    );
+  }
+
+  function onArrivedSecond(){
+    if(arrivedSecond) return;
+    arrivedSecond = true;
+    setStatus('Arrivé au second lieu — redirection en cours…', 'ok');
+    distanceFirstEl.textContent = `Distance vers le premier lieu : 0 m`;
+    distanceSecondEl.style.display = 'block';
+    distanceSecondEl.textContent = `Distance vers le second lieu : 0 m`;
+    try{ if(geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+    setTimeout(()=>{ window.location.href = REDIRECT; }, 900);
+  }
+
+  function atbashDecode(s){
+    const a='abcdefghijklmnopqrstuvwxyz';
+    const r=a.split('').reverse().join('');
+    let map = {};
+    for(let i=0;i<26;i++) map[a[i]]=r[i];
+    let out='';
+    for(const ch of (s||'').toLowerCase()){
+      if(map[ch]) out += map[ch];
+      else out += ch;
+    }
+    return out;
+  }
+
+  validateBtn.addEventListener('click', function(){
+    const val = normalize(answerInp.value);
+    const expected = normalize("je t'aime mon coeur");
+    const decodedCipher = normalize(atbashDecode("qv g'zrnv nlm xlvfi"));
+    if(val === expected || decodedCipher === expected || val.replace(/\s/g,'')===expected.replace(/\s/g,'')){
+      charadeMsg.textContent = 'Bonne réponse !';
+      charadeMsg.style.color = 'var(--ok)';
+      showQR();
+    } else {
+      charadeMsg.textContent = 'Réessaie !';
+      charadeMsg.style.color = 'var(--bad)';
+    }
+  });
+
+  hintBtn.addEventListener('click', function(){ 
+    alert("Indice : applique la symétrie a↔z (Atbash) au texte chiffré."); 
+  });
+
+  setStatus('active ta loc petit caca', 'info');
+  startTracking();
+})();
+</script>
+</body>
+</html>

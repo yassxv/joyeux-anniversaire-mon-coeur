@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Étape 5 - QCM</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  body{
+    font-family:Inter,system-ui,Arial,sans-serif;
+    background:#fffaf0;
+    margin:0;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    padding:20px;
+  }
+  .card{
+    background:#fff;
+    padding:24px;
+    border-radius:14px;
+    box-shadow:0 10px 30px rgba(16,24,40,0.06);
+    text-align:center;
+    max-width:600px;
+    width:100%;
+  }
+  h2{margin-bottom:16px;}
+  p{margin-bottom:16px;}
+  .button-grid{
+    display:flex;
+    justify-content:center;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-top:16px;
+  }
+  button{
+    padding:16px 24px;
+    border-radius:10px;
+    border:none;
+    background:#ff6b4a;
+    color:white;
+    font-weight:600;
+    cursor:pointer;
+    font-size:16px;
+    min-width:120px;
+  }
+  button.hidden{display:none;}
+</style>
+</head>
+<body>
+<div class="card">
+  <!-- Message de bienvenue avant le QCM -->
+  <div id="welcomeMessage">
+    <h2>J’espère que les courses étaient bonnes !</h2>
+    <button id="startQCMBtn">Oui, très !</button>
+  </div>
+
+  <!-- QCM (initialement caché) -->
+  <div id="qcmSection" class="hidden">
+    <h2>Choisis nos personnages préférés</h2>
+    <p>Choisis les 2 personnages qui nous représenteraient le plus parmi la liste :</p>
+    <div id="qcmContainer" class="button-grid"></div>
+    <div id="message" style="margin-top:16px;font-weight:600;"></div>
+    <button id="nextButton" class="hidden">Est-ce que tu es bien protégé maintenant ?</button>
+  </div>
+</div>
+
+<script>
+const personnages = ["mitsuri","obanai","rengoku","tanjiro","tomioka","shinobu","tengen","gyomei","tamayo","ubuyashiki","muzan","akaza","koyuki","muichiro"];
+const correctAnswers = ["mitsuri","obanai"];
+let selected = [];
+
+// Mélange aléatoire d'un tableau
+function shuffle(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+// Affichage du QCM
+function renderQCM() {
+  const container = document.getElementById("qcmContainer");
+  container.innerHTML = "";
+  shuffle(personnages).forEach(p => {
+    const btn = document.createElement("button");
+    btn.textContent = p;
+    btn.onclick = () => handleSelection(p, btn);
+    container.appendChild(btn);
+  });
+}
+
+// Gestion de la sélection
+function handleSelection(personnage, btn) {
+  if(selected.includes(personnage)){
+    selected = selected.filter(p => p !== personnage);
+    btn.style.background="#ff6b4a";
+  } else if(selected.length < 2){
+    selected.push(personnage);
+    btn.style.background="#065f46";
+  }
+  if(selected.length === 2){
+    checkAnswer();
+  }
+}
+
+// Vérification des réponses
+function checkAnswer() {
+  const msg = document.getElementById("message");
+  if(correctAnswers.every(p => selected.includes(p))){
+    msg.textContent = "Bonne réponse !";
+    setTimeout(() => {
+      document.getElementById("nextButton").classList.remove("hidden");
+    }, 5000); // 5 secondes avant d'afficher le bouton
+  } else {
+    msg.textContent = "Réessaie !";
+    selected = [];
+    // Reset buttons
+    document.querySelectorAll("#qcmContainer button").forEach(b => b.style.background="#ff6b4a");
+  }
+}
+
+// Lien vers l'étape 6
+document.getElementById("nextButton").onclick = () => {
+  window.location.href = "etape6.html";
+}
+
+// Bouton de démarrage du QCM
+document.getElementById("startQCMBtn").onclick = () => {
+  document.getElementById("welcomeMessage").classList.add("hidden");
+  document.getElementById("qcmSection").classList.remove("hidden");
+  renderQCM();
+};
+</script>
+</body>
+</html>

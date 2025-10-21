@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>je t'aime tu sais</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --muted:#6b7280; --accent:#ff6b4a; --bg:#fffaf0;
+    --card:#ffffff; --shadow: rgba(16,24,40,0.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);padding:18px;display:flex;justify-content:center;align-items:center}
+  .card{width:100%;max-width:680px;background:var(--card);border-radius:14px;padding:24px;box-shadow:0 10px 30px var(--shadow)}
+  h2{margin:0 0 16px;font-weight:600;font-size:24px;color:#1f2937}
+  .charade{background:#fef3c7;padding:20px;border-radius:12px;border-left:4px solid #f59e0b;margin-bottom:20px;line-height:1.6;color:#92400e;font-size:16px}
+  .consigne{color:var(--muted);font-size:14px;margin-bottom:16px;line-height:1.5}
+  button{background:var(--accent);color:#fff;border:0;padding:12px 20px;border-radius:10px;cursor:pointer;font-weight:600;font-size:15px;width:100%}
+  button:hover{opacity:0.9}
+  button.ghost{background:transparent;border:1px solid #e6e6e6;color:#333;padding:10px 16px;margin-top:12px}
+  button.help{background:#3b82f6;margin-top:12px}
+  .status{margin-top:16px;padding:12px;border-radius:8px;font-weight:600;text-align:center;display:none}
+  .status.active{display:block}
+  .status.ok{background:#d1fae5;color:#065f46}
+  .status.bad{background:#fee2e2;color:#991b1b}
+  .status.info{background:#dbeafe;color:#1e40af}
+  .hidden{display:none}
+  @media (max-width:760px){
+    .card{padding:18px}
+    h2{font-size:20px}
+  }
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h2>Parfois il vallait mieux plaider folie</h2>
+    
+    <div class="charade">
+      <strong>L'endroit ou on se voit chaque jours</strong><br><br>
+      quand tu y seras tu devras y faire <strong>une petite chanson</strong> puis <strong>si elle me plaît</strong>, tu iras à l'étape suivante.
+    </div>
+
+    <div class="consigne">
+      <strong>Consigne :</strong> Rends-toi là où on se fréquente le plus souvent. Le bouton "Continuer" n'apparaîtra que lorsque tu seras dans un rayon de 100 mètres (mais n'appuie pas dessus tant que tu n'as pas chanter)
+    </div>
+
+    <button id="startBtn">J'ai compris mon coeur, allons-y !</button>
+    <button id="helpBtn" class="ghost help hidden">🆘 Besoin d'aide ? Voir l'emplacement</button>
+    <div id="status" class="status"></div>
+    <button id="continueBtn" class="hidden" style="margin-top:20px">Continuer vers l'étape suivante</button>
+  </div>
+
+<script>
+(function(){
+  const TARGET_LAT = 48.8434583;
+  const TARGET_LON = 2.3117253;
+  const GEO_RADIUS_METERS = 100;
+  const HELP_DELAY_MS = 20 * 60 * 1000;
+
+  let geoWatchId = null;
+  let helpTimer = null;
+
+  function el(id){ return document.getElementById(id); }
+
+  function setStatus(text, type){
+    const status = el('status');
+    status.textContent = text;
+    status.className = 'status active ' + (type || '');
+  }
+
+  function distanceMeters(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const toRad = a => a * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)**2 + 
+              Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * 
+              Math.sin(dLon/2)**2;
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  function startGeoWatch(){
+    if(!('geolocation' in navigator)){
+      setStatus('Géolocalisation non supportée.', 'bad');
+      return;
+    }
+    
+    if(geoWatchId !== null) navigator.geolocation.clearWatch(geoWatchId);
+    
+    setStatus('Surveillance de ta position activée...', 'info');
+    
+    geoWatchId = navigator.geolocation.watchPosition(
+      function(pos){
+        const d = distanceMeters(pos.coords.latitude, pos.coords.longitude, TARGET_LAT, TARGET_LON);
+        setStatus('Distance actuelle : ' + Math.round(d) + ' m', 'info');
+        
+        if(d <= GEO_RADIUS_METERS){
+          navigator.geolocation.clearWatch(geoWatchId);
+          geoWatchId = null;
+          if(helpTimer) clearTimeout(helpTimer);
+          setStatus('Tu es arrivé ! Étape suivante débloquée.', 'ok');
+          el('continueBtn').classList.remove('hidden');
+          setTimeout(()=>{ el('continueBtn').scrollIntoView({behavior:'smooth', block:'center'}); }, 300);
+        }
+      },
+      function(err){
+        if(err.code === 1) setStatus('Permission refusée. Autorise la localisation.', 'bad');
+        else if(err.code === 2) setStatus('Position indisponible. Active ton GPS.', 'bad');
+        else if(err.code === 3) setStatus('Délai dépassé. Réessaie.', 'bad');
+        else setStatus('Erreur : ' + (err.message || 'inconnue'), 'bad');
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
+    );
+  }
+
+  function requestGeolocation(){
+    if(!('geolocation' in navigator)){
+      setStatus('Géolocalisation non supportée.', 'bad');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        setStatus('Position obtenue — suivi activé.', 'ok');
+        startGeoWatch();
+      },
+      function(err){
+        if(err.code === 1) setStatus('Permission refusée. Autorise la localisation.', 'bad');
+        else if(err.code === 2) setStatus('Position indisponible. Active ton GPS.', 'bad');
+        else if(err.code === 3) setStatus('Délai expiré. Réessaie.', 'bad');
+        else setStatus('Erreur : ' + (err.message || 'inconnue'), 'bad');
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
+
+  el('startBtn').addEventListener('click', function(){
+    el('startBtn').disabled = true;
+    el('startBtn').textContent = 'Géolocalisation en cours...';
+    requestGeolocation();
+    
+    helpTimer = setTimeout(()=>{ el('helpBtn').classList.remove('hidden'); }, HELP_DELAY_MS);
+  });
+
+  el('helpBtn').addEventListener('click', function(){
+    const helpUrl = 'https://earth.app.goo.gl/?apn=com.google.earth&isi=293622097&ius=googleearth&link=https%3a%2f%2fearth.google.com%2fweb%2fsearch%2f48.842%25c2%25b0N,%2b2.322%25c2%25b0E';
+    try{
+      const w = window.open(helpUrl, '_blank', 'noopener');
+      if(!w) window.location.href = helpUrl;
+    }catch(e){ window.location.href = helpUrl; }
+  });
+
+  el('continueBtn').addEventListener('click', function(){
+    window.location.href = 'etape3.html';
+  });
+
+})();
+</script>
+</body>
+</html>

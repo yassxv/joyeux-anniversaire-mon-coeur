@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tu voulais un escape game ?</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --muted:#6b7280; --accent:#ff6b4a; --bg:#fffaf0;
+    --card:#ffffff; --shadow: rgba(16,24,40,0.06);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);padding:18px;display:flex;justify-content:center}
+  .card{width:100%;max-width:980px;background:var(--card);border-radius:14px;padding:20px;box-shadow:0 10px 30px var(--shadow)}
+  h2{margin:0 0 8px;font-weight:600}
+  .intro{color:#374151;margin-bottom:12px;line-height:1.45}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .field{background:#fafafa;padding:12px;border-radius:10px;min-width:0}
+  .consigne{color:var(--muted);font-size:13px;margin-bottom:8px;line-height:1.2}
+  .input-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  input[type="text"]{padding:10px;border-radius:8px;border:1px solid #e6e6e6;font-size:15px;min-width:0}
+  input[type="text"].small{width:68px;text-align:center}
+  button{background:var(--accent);color:#fff;border:0;padding:10px 12px;border-radius:10px;cursor:pointer;font-weight:600}
+  button.ghost{background:transparent;border:1px solid #e6e6e6;color:#333;padding:8px 10px}
+  .preview{margin-top:14px;font-weight:600}
+  .ok{color:#059669}
+  .bad{color:#b91c1c}
+  .hint-small{font-size:13px;color:#6b7280;margin-top:6px}
+  .next{margin-top:16px;padding:14px;background:#f8ffef;border-radius:10px;display:none}
+  .coords-row{display:flex;gap:10px;align-items:center;margin-top:10px;flex-wrap:wrap}
+  .link{background:transparent;border:1px solid #eaeaea;padding:8px 10px;border-radius:8px;text-decoration:none;color:inherit}
+  .banner{margin-top:14px;padding:14px;border-radius:10px;background:#fff3cd;color:#92400e;font-weight:700;display:none}
+  .status-line{margin-left:8px;font-weight:600}
+  @media (max-width:760px){
+    .grid{grid-template-columns:1fr}
+    input[type="text"].small{width:60px}
+    .card{padding:14px}
+  }
+</style>
+</head>
+<body>
+  <div class="card" role="main" id="app">
+    <h2>Là où tout commencera</h2>
+    <div class="intro">Réponds aux questions et remplis les trous. Installe Google Earth si tu veux ouvrir le lieu. Copie les coordonnées ou ouvre le lien. Indice initial : on y a déjà fait nos bêtises.</div>
+
+    <section aria-labelledby="lat-title">
+      <h3 id="lat-title">Latitude</h3>
+      <div class="grid" role="group" aria-label="Latitude">
+        <div class="field">
+          <div class="consigne">1) le domaine du papillon (indice : Demon Slayer)</div>
+          <div class="input-row">
+            <input id="latDeg" type="text" inputmode="numeric" maxlength="2" aria-label="Latitude degrés" class="small" />
+            <span>°</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="consigne">2) 6 × 9 − 3</div>
+          <div class="input-row">
+            <input id="latMin" type="text" inputmode="numeric" maxlength="2" aria-label="Latitude minutes" class="small" />
+            <span>'</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="consigne">3) 0 . 249/100 — calcule le quotient et place les centièmes après le point</div>
+          <div class="input-row">
+            <span>0</span>
+            <input id="latSecInt" type="text" inputmode="numeric" maxlength="2" aria-label="Latitude secondes entières" class="small" />
+            <span>.</span>
+            <input id="latSecFrac" type="text" inputmode="numeric" maxlength="2" aria-label="Latitude secondes fraction" class="small" />
+            <span>"</span>
+          </div>
+          <div class="hint-small">Le champ fraction attend exactement 2 chiffres.</div>
+        </div>
+
+        <div class="field">
+          <div class="consigne">4) première lettre de la sœur de Tanjiro (majuscule)</div>
+          <div class="input-row">
+            <input id="latHem" type="text" maxlength="1" aria-label="Latitude hémisphère" style="width:64px;text-align:center" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <hr style="margin:14px 0;border:none;border-top:1px solid #f3f4f6">
+
+    <section aria-labelledby="lon-title">
+      <h3 id="lon-title">Longitude</h3>
+      <div class="grid" role="group" aria-label="Longitude">
+        <div class="field">
+          <div class="consigne">5) √4</div>
+          <div class="input-row">
+            <input id="lonDeg" type="text" inputmode="numeric" maxlength="2" aria-label="Longitude degrés" class="small" />
+            <span>°</span>
+          </div>
+        </div>
+
+        <div class="field">
+          <div class="consigne">6) les deux seules postures que Zenitsu maîtrise (minutes)</div>
+          <div class="input-row">
+            <input id="lonMin" type="text" inputmode="numeric" maxlength="2" aria-label="Longitude minutes" class="small" />
+            <span>'</span>
+          </div>
+          <div class="hint-small">Donne le nombre correspondant en minutes.</div>
+        </div>
+
+        <div class="field">
+          <div class="consigne">7) 691/100 — même principe (place les centièmes après le point)</div>
+          <div class="input-row">
+            <span>0</span>
+            <input id="lonSecInt" type="text" inputmode="numeric" maxlength="2" aria-label="Longitude secondes entières" class="small" />
+            <span>.</span>
+            <input id="lonSecFrac" type="text" inputmode="numeric" maxlength="2" aria-label="Longitude secondes fraction" class="small" />
+            <span>"</span>
+          </div>
+          <div class="hint-small">La fraction attend exactement 2 chiffres.</div>
+        </div>
+
+        <div class="field">
+          <div class="consigne">8) la 5ᵉ lettre de l'alphabet (majuscule)</div>
+          <div class="input-row">
+            <input id="lonHem" type="text" maxlength="1" aria-label="Longitude hémisphère" style="width:64px;text-align:center" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div style="display:flex;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap">
+      <button id="verify">Vérifier</button>
+      <div id="status" class="status-line" aria-live="polite"></div>
+    </div>
+
+    <div class="preview" id="preview" aria-live="polite">Latitude : — , Longitude : —</div>
+
+    <div id="next" class="next" role="status" aria-hidden="true">
+      <strong>Parfait.</strong> La suite est débloquée.<br>
+      <span style="color:#92400e;font-weight:600;display:block;margin-top:6px">
+        ⚠️ Avant de continuer, ouvre le lieu dans <u>Google Earth</u> grâce au lien ci-dessous et vérifie que tu as bien reconnu l’endroit.
+      </span>
+      <div class="coords-row" style="margin-top:10px">
+        <div id="coordsText" style="font-weight:700"></div>
+        <button id="copyBtn" class="ghost">Copier les coordonnées</button>
+        <a id="earthLink" class="link" target="_blank" rel="noopener">Ouvrir dans Google Earth</a>
+      </div>
+
+      <div id="afterLink" style="margin-top:12px;display:none">
+        <p class="hint-small"><strong>As-tu reconnu le lieu ?</strong></p>
+        <div style="display:flex;gap:8px">
+          <button id="yesBtn" class="ghost">Oui</button>
+          <button id="noBtn" class="ghost">Non</button>
+        </div>
+      </div>
+
+      <div id="banner" class="banner" aria-hidden="true"></div>
+
+      <div id="continueSection" style="margin-top:12px;display:none">
+        <button id="continueBtn" style="margin-left:8px">Continuer</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const TARGET_LAT = {deg:'48', min:'51', secInt:'02', secFrac:'49', hem:'N'};
+  const TARGET_LON = {deg:'2', min:'17', secInt:'06', secFrac:'91', hem:'E'};
+  const GEO_RADIUS_METERS = 100;
+
+  const ids = ['latDeg','latMin','latSecInt','latSecFrac','latHem','lonDeg','lonMin','lonSecInt','lonSecFrac','lonHem'];
+
+  function pad2(s){ if(s==null) return ''; s = s.toString(); return s.length===1 ? '0'+s : s; }
+  function el(id){ return document.getElementById(id); }
+
+  function assembleLat(){
+    const d = el('latDeg').value.trim();
+    const m = pad2(el('latMin').value.trim());
+    const si = pad2(el('latSecInt').value.trim());
+    const sf = (el('latSecFrac').value||'').toString().padStart(2,'0').slice(0,2);
+    const h = (el('latHem').value||'').toUpperCase();
+    if(!d || !m || !si || !sf || !h) return null;
+    return d+'°'+m+"'"+si+'.'+sf+'"'+h;
+  }
+  function assembleLon(){
+    const d = el('lonDeg').value.trim();
+    const m = pad2(el('lonMin').value.trim());
+    const si = pad2(el('lonSecInt').value.trim());
+    const sf = (el('lonSecFrac').value||'').toString().padStart(2,'0').slice(0,2);
+    const h = (el('lonHem').value||'').toUpperCase();
+    if(!d || !m || !si || !sf || !h) return null;
+    return d+'°'+m+"'"+si+'.'+sf+'"'+h;
+  }
+
+  function updatePreview(){
+    const lat = assembleLat();
+    const lon = assembleLon();
+    el('preview').textContent = 'Latitude : '+(lat || '—')+' , Longitude : '+(lon || '—');
+  }
+
+  ids.forEach(function(id){
+    const input = el(id);
+    if(!input) return;
+    input.addEventListener('input', function(){
+      if(input.maxLength === 1){
+        input.value = input.value.toUpperCase().replace(/[^A-Z]/g,'').slice(0,1);
+      } else {
+        input.value = input.value.replace(/[^0-9]/g,'').slice(0, input.maxLength);
+      }
+      updatePreview();
+    });
+  });
+
+  function matchesTarget(){
+    const latDeg = (el('latDeg').value||'').trim();
+    const latMin = pad2((el('latMin').value||'').trim());
+    const latSI = pad2((el('latSecInt').value||'').trim());
+    const latSF = (el('latSecFrac').value||'').toString().padStart(2,'0').slice(0,2);
+    const latH = (el('latHem').value||'').toUpperCase();
+
+    const lonDeg = (el('lonDeg').value||'').trim();
+    const lonMin = pad2((el('lonMin').value||'').trim());
+    const lonSI = pad2((el('lonSecInt').value||'').trim());
+    const lonSF = (el('lonSecFrac').value||'').toString().padStart(2,'0').slice(0,2);
+    const lonH = (el('lonHem').value||'').toUpperCase();
+
+    return latDeg === TARGET_LAT.deg &&
+           latMin === TARGET_LAT.min &&
+           latSI === TARGET_LAT.secInt &&
+           latSF === TARGET_LAT.secFrac &&
+           latH === TARGET_LAT.hem &&
+           lonDeg === TARGET_LON.deg &&
+           lonMin === TARGET_LON.min &&
+           lonSI === TARGET_LON.secInt &&
+           lonSF === TARGET_LON.secFrac &&
+           lonH === TARGET_LON.hem;
+  }
+
+  function dmsToDecimal(deg, min, secInt, secFracCentis, hem){
+    const sInt = Number(secInt) || 0;
+    const sFrac = Number(secFracCentis || 0) / 100;
+    const seconds = sInt + sFrac;
+    const decimal = Number(deg) + Number(min)/60 + seconds/3600;
+    return (hem === 'S' || hem === 'W') ? -decimal : decimal;
+  }
+
+  function setStatus(text, cls){
+    const s = el('status');
+    if(s){
+      s.textContent = text;
+      s.className = 'status-line ' + (cls || '');
+    }
+  }
+
+  function distanceMeters(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const toRad = function(a){ return a * Math.PI / 180; };
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  let geoWatchId = null;
+
+  function startGeoWatch(targetLatDec, targetLonDec, radiusMeters){
+    if(!('geolocation' in navigator)){
+      setStatus('Géolocalisation non supportée.', 'bad');
+      return;
+    }
+    
+    if(geoWatchId !== null){
+      try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+      geoWatchId = null;
+    }
+    
+    setStatus('Surveillance de ta position activée...', '');
+    
+    geoWatchId = navigator.geolocation.watchPosition(
+      function(pos){
+        const d = distanceMeters(pos.coords.latitude, pos.coords.longitude, targetLatDec, targetLonDec);
+        setStatus('Distance actuelle ≈ ' + Math.round(d) + ' m');
+        
+        if(d <= radiusMeters){
+          try{ navigator.geolocation.clearWatch(geoWatchId); }catch(e){}
+          geoWatchId = null;
+          setStatus('Tu es à moins de ' + radiusMeters + ' m — étape suivante débloquée !', 'ok');
+          el('continueSection').style.display = 'block';
+          setTimeout(function(){ 
+            el('continueBtn').scrollIntoView({behavior:'smooth', block:'center'});
+          }, 300);
+        }
+      },
+      function(err){
+        if(err.code === 1){
+          setStatus('Permission refusée. Autorise la localisation dans les paramètres.', 'bad');
+        } else if(err.code === 2){
+          setStatus('Position indisponible. Essaye en extérieur avec GPS activé.', 'bad');
+        } else if(err.code === 3){
+          setStatus('Délai dépassé. Réessaie.', 'bad');
+        } else {
+          setStatus('Erreur géoloc: ' + (err.message || 'inconnue'), 'bad');
+        }
+        // NOTE: pas de bouton manuel créé ici — on laisse simplement le message d'erreur
+      },
+      { enableHighAccuracy: true, maximumAge: 3000, timeout: 20000 }
+    );
+  }
+
+  function requestGeolocation(targetLatDec, targetLonDec, radiusMeters){
+    if(!('geolocation' in navigator)){
+      setStatus('Géolocalisation non supportée.', 'bad');
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      function(pos){
+        setStatus('Position obtenue — suivi activé.', 'ok');
+        startGeoWatch(targetLatDec, targetLonDec, radiusMeters);
+      },
+      function(err){
+        if(err.code === 1){
+          setStatus('Permission refusée. Autorise la localisation pour ce site.', 'bad');
+        } else if(err.code === 2){
+          setStatus('Position indisponible. Essaye en extérieur.', 'bad');
+        } else if(err.code === 3){
+          setStatus('Délai expiré. Réessaie.', 'bad');
+        } else {
+          setStatus('Erreur: ' + (err.message || 'inconnue'), 'bad');
+        }
+        // NOTE: pas de bouton manuel ici non plus
+      },
+      { enableHighAccuracy: true, maximumAge: 5000, timeout: 15000 }
+    );
+  }
+
+  function openExternalLink(url){
+    try{
+      const w = window.open(url, '_blank', 'noopener');
+      if(!w){
+        navigator.clipboard.writeText(url).then(function(){
+          alert("Impossible d'ouvrir automatiquement. Le lien a été copié ; colle-le dans ton navigateur.");
+        }).catch(function(){
+          prompt('Copie manuellement ce lien :', url);
+        });
+      }
+    }catch(e){
+      navigator.clipboard.writeText(url).then(function(){
+        alert("Impossible d'ouvrir automatiquement. Le lien a été copié ; colle-le dans ton navigateur.");
+      }).catch(function(){
+        prompt('Copie manuellement ce lien :', url);
+      });
+    }
+  }
+
+  el('copyBtn').addEventListener('click', function(){
+    const coordsText = el('coordsText').textContent || '';
+    if(!coordsText) return;
+    try{
+      navigator.clipboard.writeText(coordsText).then(function(){
+        el('copyBtn').textContent = 'Copié !';
+        setTimeout(function(){ el('copyBtn').textContent = 'Copier les coordonnées'; }, 2000);
+      });
+    }catch(e){
+      const ta = document.createElement('textarea');
+      ta.value = coordsText;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      el('copyBtn').textContent = 'Copié !';
+      setTimeout(function(){ el('copyBtn').textContent = 'Copier les coordonnées'; }, 2000);
+    }
+  });
+
+  el('earthLink').addEventListener('click', function(e){
+    e.preventDefault();
+    const href = el('earthLink').href;
+    if(!href){
+      setStatus('Lien non disponible.', 'bad'); return;
+    }
+    openExternalLink(href);
+    el('afterLink').style.display = 'block';
+    el('afterLink').scrollIntoView({behavior:'smooth', block:'center'});
+  });
+
+  el('yesBtn').addEventListener('click', function(){
+    const banner = el('banner');
+    banner.textContent = "on se retrouve à l'endroit ou on a fait nos cochoneries";
+    banner.style.display = 'block';
+    banner.scrollIntoView({behavior:'smooth', block:'center'});
+    setStatus('', 'ok');
+  });
+  
+  el('noBtn').addEventListener('click', function(){
+    const banner = el('banner');
+    banner.textContent = "Indice : brazzaville";
+    banner.style.display = 'block';
+    banner.scrollIntoView({behavior:'smooth', block:'center'});
+    setStatus('Indice affiché.', '');
+  });
+
+  el('continueBtn').addEventListener('click', function(){
+    window.location.href = 'etape2.html';
+  });
+
+  el('verify').addEventListener('click', function(){
+    if(matchesTarget()){
+      setStatus('Coordonnée correcte.', 'ok');
+
+      const next = el('next');
+      next.style.display = 'block';
+      next.setAttribute('aria-hidden','false');
+
+      const latStr = assembleLat();
+      const lonStr = assembleLon();
+      const coordsText = latStr + ' ' + lonStr;
+      el('coordsText').textContent = coordsText;
+
+      const providedEarthUrl = 'https://earth.app.goo.gl/?apn=com.google.earth&isi=293622097&ius=googleearth&link=https%3a%2f%2fearth.google.com%2fweb%2fsearch%2f48%25c2%25b051%252702.49%2522N%2b2%25c2%25b017%252706.91%2522E%2f%4048.85088213,2.28527807,33.0285401a,0d,60y,297.81398109h,80.73497496t,0r%2fdata%3dCmQaNhIwGUQ9M3fjbEhAIUu9uJ4ySAJAKhw0OMKwNTEnMDIuNDkiTiAywrAxNycwNi45MSJFGAEgASImCiQJ3vba7m1zSEARqJ4nmwRiSEAZrhAqv5XNAkAhJRB5jTfVAUBCAggBIhoKFkMzWTVDSkJQU0F1NHNHYkczaEdna1EQAkICCABKDQj___________8BEAA';
+      el('earthLink').href = providedEarthUrl;
+
+      const latDec = dmsToDecimal(
+        el('latDeg').value, el('latMin').value, el('latSecInt').value, el('latSecFrac').value, (el('latHem').value||'').toUpperCase()
+      );
+      const lonDec = dmsToDecimal(
+        el('lonDeg').value, el('lonMin').value, el('lonSecInt').value, el('lonSecFrac').value, (el('lonHem').value||'').toUpperCase()
+      );
+
+      el('earthLink').dataset.lat = latDec;
+      el('earthLink').dataset.lon = lonDec;
+
+      // Démarre la géolocalisation et redirection automatique
+      requestGeolocation(latDec, lonDec, GEO_RADIUS_METERS);
+
+      // Redirection automatique quand dans le rayon
+      const checkDistanceInterval = setInterval(function(){
+        navigator.geolocation.getCurrentPosition(function(pos){
+          const dist = distanceMeters(pos.coords.latitude, pos.coords.longitude, latDec, lonDec);
+          if(dist <= GEO_RADIUS_METERS){
+            clearInterval(checkDistanceInterval);
+            window.location.href = 'etape2.html';
+          }
+        });
+      }, 3000);
+
+    } else {
+      setStatus("Ce n'est pas encore exact. Vérifie tes réponses.", 'bad');
+    }
+  });
+
+  updatePreview();
+
+})();
+</script>
+</body>
+</html>
