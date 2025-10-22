@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Étape 7-2 — Le cadenas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" relstylesheet>
+<style>
+:root{
+  --muted:#6b7280;
+  --accent:#ff6b4a;
+  --bg:#fffaf0;
+  --card:#ffffff;
+  --shadow: rgba(16,24,40,0.06);
+  --success:#059669;
+}
+*{box-sizing:border-box}
+body{
+  font-family:Inter,system-ui,Arial,sans-serif;
+  background:var(--bg);
+  margin:0;
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+}
+.card{
+  width:100%;
+  max-width:720px;
+  background:var(--card);
+  border-radius:14px;
+  padding:28px;
+  box-shadow:0 10px 30px var(--shadow);
+  text-align:center;
+}
+h2{
+  margin:0 0 16px;
+  font-size:22px;
+  color:#1f2937;
+}
+p.lead{
+  color:#374151;
+  margin-bottom:18px;
+}
+.lock{
+  width:120px;
+  height:140px;
+  margin:20px auto 10px;
+  background:linear-gradient(180deg,#fff 0%, #fffaf0 100%);
+  border-radius:14px;
+  box-shadow:0 6px 18px rgba(16,24,40,0.06);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  position:relative;
+  overflow:visible;
+}
+.lock svg{
+  width:90px;
+  height:120px;
+  display:block;
+  overflow:visible;
+}
+.lock .shackle-group{
+  transform-box: fill-box;
+  transform-origin: 50% 30%;
+  transition: transform 520ms cubic-bezier(.2,.9,.3,1), stroke 300ms;
+}
+.lock.open .shackle-group{
+  transform: rotate(-40deg) translate(10px,-10px);
+}
+.lock.open rect,
+.lock.open path{
+  stroke: var(--success);
+}
+.input-row{
+  display:flex;
+  gap:10px;
+  justify-content:center;
+  align-items:center;
+  margin-top:14px;
+}
+input.code{
+  padding:12px 14px;
+  border-radius:10px;
+  border:1px solid #e6e6e6;
+  font-size:18px;
+  width:220px;
+  text-align:center;
+  letter-spacing:6px;
+}
+button.btn{
+  margin-top:16px;
+  padding:12px 18px;
+  border-radius:10px;
+  border:0;
+  background:var(--accent);
+  color:white;
+  font-weight:700;
+  cursor:pointer;
+  font-size:16px;
+  box-shadow:0 6px 18px rgba(16,24,40,0.06);
+}
+button.ghost{
+  margin-top:12px;
+  padding:8px 12px;
+  border-radius:8px;
+  border:1px solid #e6e6e6;
+  background:transparent;
+  color:#333;
+  cursor:pointer;
+  font-weight:600;
+  display:none; /* caché par défaut */
+}
+.message{
+  margin-top:12px;
+  font-weight:700;
+  min-height:22px;
+}
+.success{color:var(--success)}
+.error{color:#b91c1c}
+
+.fadeOut{animation:fadeOut .34s ease forwards}
+@keyframes fadeOut{
+  from{opacity:1; transform:translateY(0)}
+  to{opacity:0; transform:translateY(-8px) scale(.98)}
+}
+
+.hint-note{
+  font-size:14px;
+  color:#374151;
+  margin-top:10px;
+}
+.distance{
+  font-size:14px;
+  color:#374151;
+  margin-top:12px;
+}
+</style>
+</head>
+<body>
+  <div class="card" role="main" aria-labelledby="title">
+    <h2 id="title">Le cadenas du parc</h2>
+
+    <div class="lock" id="lock">
+      <svg viewBox="0 0 24 34" xmlns="http://www.w3.org/2000/svg" overflow="visible">
+        <g class="shackle-group">
+          <path d="M7 12V8a5 5 0 0 1 10 0v4" stroke="#ff6b4a" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+        </g>
+        <rect x="3.5" y="12" width="17" height="10" rx="2" stroke="#ff6b4a" stroke-width="1.6" fill="white"/>
+      </svg>
+    </div>
+
+    <p class="lead">Résous les 4 énigmes pour obtenir le code à 4 chiffres et ouvrir le cadenas.</p>
+
+    <ol id="charadeList" style="text-align:left;max-width:560px;margin:0 auto">
+      <li><strong>Chiffre 1 :</strong> Je suis le seul chiffre pair qui est aussi un nombre premier. Qui suis-je ?</li>
+      <li><strong>Chiffre 2 :</strong> Je suis le premier chiffre, celui qui représente l'unité, le début de tout. Qui suis-je ?</li>
+      <li><strong>Chiffre 3 :</strong> Je suis identique au chiffre précédent. Je me répète. Qui suis-je ?</li>
+      <li><strong>Chiffre 4 :</strong> Je suis le vide, le néant, ce qui représente l'absence. Qui suis-je ?</li>
+    </ol>
+
+    <div class="input-row">
+      <input class="code" id="codeInput" inputmode="numeric" maxlength="4" placeholder="----">
+    </div>
+
+    <div class="message" id="message"></div>
+    <p id="hint" class="hint-note" style="display:none">indice : anniversaire</p>
+    <p class="distance" id="distParc">Distance du parc : — m</p>
+  </div>
+
+<script>
+(function(){
+  const CORRECT = "2110";
+  const REDIRECT_LINK = "https://maps.app.goo.gl/SnjA6GMsLCQ6qMaW9"; 
+  const TARGET = { lat: 48.880280, lon: 2.382778 };
+  const RADIUS_METERS = 500;
+
+  let unlocked = false;
+  let attempts = 0;
+  let watchId = null;
+
+  const input = document.getElementById('codeInput');
+  const message = document.getElementById('message');
+  const lock = document.getElementById('lock');
+  const charadeList = document.getElementById('charadeList');
+  const hintEl = document.getElementById('hint');
+  const distEl = document.getElementById('distParc');
+
+  input.addEventListener('input', ()=>{
+    const val = input.value.trim();
+    if(val.length === 4){
+      if(val === CORRECT){
+        showUnlock();
+      } else {
+        attempts++;
+        message.textContent = "Code incorrect — réessaie.";
+        message.className = "message error";
+        if(attempts >= 1) hintEl.style.display = 'block';
+      }
+    }
+  });
+
+  function showUnlock(){
+    if(unlocked) return;
+    unlocked = true;
+    charadeList.classList.add('fadeOut');
+    input.classList.add('fadeOut');
+    message.textContent = "Code correct ! Le cadenas s'ouvre...";
+    message.className = "message success";
+    lock.classList.add('open');
+
+    // Ouvre automatiquement Google Maps
+    setTimeout(()=>{
+      window.open(REDIRECT_LINK, "_blank");
+    }, 500);
+
+    startGeoloc();
+  }
+
+  function startGeoloc(){
+    if(!('geolocation' in navigator)){
+      message.textContent = "La géolocalisation n'est pas disponible.";
+      return;
+    }
+    watchId = navigator.geolocation.watchPosition(pos=>{
+      const d = distanceMeters(pos.coords.latitude,pos.coords.longitude,TARGET.lat,TARGET.lon);
+      distEl.textContent = `Distance du parc : ${Math.round(d)} m`;
+      if(d <= RADIUS_METERS){
+        try{ navigator.geolocation.clearWatch(watchId); }catch(e){}
+        window.location.href = "etape7-3.html"; 
+      }
+    }, err=>{
+      console.warn("Erreur géoloc:", err);
+      distEl.textContent = "Localisation non disponible";
+    }, { enableHighAccuracy:true, maximumAge:3000, timeout:20000 });
+  }
+
+  function distanceMeters(lat1,lon1,lat2,lon2){
+    const R=6371000;
+    const toRad=a=>a*Math.PI/180;
+    const dLat=toRad(lat2-lat1);
+    const dLon=toRad(lon2-lon1);
+    const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  }
+
+})();
+</script>
+</body>
+</html>
