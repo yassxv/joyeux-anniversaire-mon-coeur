@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Étape 6 - Le choix décisif</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --muted:#6b7280;
+    --accent:#ff6b4a;
+    --bg:#fffaf0;
+    --card:#ffffff;
+    --shadow: rgba(16,24,40,0.06);
+  }
+  *{box-sizing:border-box}
+  body{
+    font-family:Inter,system-ui,Arial,sans-serif;
+    background:var(--bg);
+    margin:0;
+    height:100vh;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    padding:18px;
+  }
+  .card{
+    width:100%;
+    max-width:720px;
+    background:var(--card);
+    border-radius:14px;
+    padding:28px;
+    box-shadow:0 10px 30px var(--shadow);
+    text-align:center;
+  }
+  h2{margin:0 0 14px;font-weight:600;font-size:24px;color:#1f2937;}
+  p{margin-bottom:12px;color:#374151;line-height:1.5;}
+  .button-grid{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:18px}
+  button, a.button{
+    padding:16px 26px;border-radius:12px;border:0;cursor:pointer;font-weight:700;font-size:16px;
+    background:var(--accent);color:#fff;text-decoration:none;
+    min-width:160px;
+    box-shadow:0 6px 18px rgba(16,24,40,0.06);
+  }
+  button.ghost{background:transparent;color:#333;border:1px solid #e6e6e6;box-shadow:none;padding:10px 14px}
+  button.small{padding:10px 12px; font-size:14px; min-width:120px}
+  #info{margin-top:16px;font-weight:600}
+  #distance{margin-top:10px;color:var(--muted)}
+  #unlockNote{margin-top:12px;color:#374151;font-size:14px}
+  #nextButton{display:none;margin-top:22px; opacity:0; transform:scale(.98); }
+  .hidden{display:none}
+
+/* animation fade + scale */
+.fade-in {
+  animation: fadeScale .36s cubic-bezier(.2,.9,.3,1) forwards;
+}
+@keyframes fadeScale {
+  from { opacity: 0; transform: translateY(6px) scale(.96); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+</style>
+</head>
+<body>
+  <div class="card" role="main">
+    <h2>J'ai un petit creux, pas toi ?</h2>
+    <p id="instruction">Deux chemins s’offrent à toi</p>
+
+    <div class="button-grid" aria-hidden="false">
+      <button id="choice1">Choix 1</button>
+      <button id="choice2">Choix 2</button>
+    </div>
+
+    <p id="info">Réfléchis tant que tu le peux</p>
+    <p id="distance" class="hidden"></p>
+    <p id="unlockNote" class="hidden"></p>
+
+    <!-- href sera mis dynamiquement vers etape7-1.html ou etape7-2.html -->
+    <a href="#" id="nextButton" class="button" aria-hidden="true">Continuer vers l’étape 7</a>
+  </div>
+
+<script>
+(function(){
+  // cibles fournies
+  const TARGETS = {
+    1: { lat: 48.8954, lon: 2.3538, name: "Cible Choix 1" },
+    2: { lat: 48.8859803, lon: 2.3591248, name: "Cible Choix 2" }
+  };
+
+  // liens externes (fourni)
+  const LINKS = {
+    1: "https://maps.app.goo.gl/rGgeL1eHVmW4uFCw6",
+    2: "https://maps.app.goo.gl/HABjzBixaymbBMzo9?g_st=ac"
+  };
+
+  const NEXT_PAGES = {
+    1: "etape7-1.html",
+    2: "etape7-2.html"
+  };
+
+  const RADIUS_METERS = 25; // modifiable si tu veux 10
+
+  let selected = null;
+  let watchId = null;
+
+  const infoEl = document.getElementById('info');
+  const distanceEl = document.getElementById('distance');
+  const unlockNoteEl = document.getElementById('unlockNote');
+  const nextBtn = document.getElementById('nextButton');
+  const buttonGrid = document.querySelector('.button-grid');
+  const instruction = document.getElementById('instruction');
+
+  function setInfo(text){
+    infoEl.textContent = text;
+  }
+
+  function setDistanceText(text){
+    distanceEl.textContent = text;
+    distanceEl.classList.remove('hidden');
+  }
+
+  function clearDistance(){
+    distanceEl.classList.add('hidden');
+    distanceEl.textContent = '';
+  }
+
+  // start tracking and hide choices + instruction (irreversible)
+  function startTracking(target){
+    // stop any previous watch if present
+    if(watchId !== null){
+      try{ navigator.geolocation.clearWatch(watchId); }catch(e){}
+      watchId = null;
+    }
+
+    // hide choices/instruction permanently once tracking begins
+    buttonGrid.style.display = 'none';
+    instruction.style.display = 'none';
+
+    if(!('geolocation' in navigator)){
+      setInfo("Géolocalisation non supportée par ton appareil. Utilise le bouton de simulation.");
+      unlockNoteEl.textContent = "bon appétit !";
+      unlockNoteEl.classList.remove('hidden');
+      return;
+    }
+
+    // message demandé
+    setInfo("Rendez-vous là bas pour manger et si tu veux la suite");
+    unlockNoteEl.textContent = "bon appétit !";
+    unlockNoteEl.classList.remove('hidden');
+
+    watchId = navigator.geolocation.watchPosition(pos => {
+      const d = distanceMeters(pos.coords.latitude, pos.coords.longitude, target.lat, target.lon);
+      setDistanceText(`Distance actuelle: ${Math.round(d)} m`);
+      if(d <= RADIUS_METERS){
+        // unlocked
+        try{ navigator.geolocation.clearWatch(watchId); }catch(e){}
+        watchId = null;
+        unlockStep7();
+      }
+    }, err => {
+      setInfo("Erreur géoloc — autorise la localisation ou utilise la simulation.");
+      console.error(err);
+    }, { enableHighAccuracy:true, maximumAge:3000, timeout:20000 });
+  }
+
+  function unlockStep7(){
+    setInfo("L'étape 7 est débloquée 🎉");
+    clearDistance();
+    unlockNoteEl.textContent = "Tu peux maintenant continuer vers l'étape 7.";
+    // set next page according to selected
+    if(selected && NEXT_PAGES[selected]){
+      nextBtn.href = NEXT_PAGES[selected];
+    } else {
+      nextBtn.href = "etape7.html";
+    }
+    // show with animation
+    nextBtn.style.display = 'inline-block';
+    nextBtn.classList.remove('fade-in');
+    // force reflow to restart animation if needed
+    void nextBtn.offsetWidth;
+    nextBtn.classList.add('fade-in');
+    nextBtn.setAttribute('aria-hidden','false');
+    nextBtn.scrollIntoView({behavior:'smooth', block:'center'});
+  }
+
+  function openLinkAndBegin(choice){
+    // open link in new tab
+    const url = LINKS[choice];
+    try{
+      window.open(url, "_blank", "noopener");
+    }catch(e){
+      // fallback
+      window.location.href = url;
+    }
+    // start tracking the corresponding target to unlock etape7
+    const target = TARGETS[choice];
+    selected = choice;
+    setInfo(`Tu as choisi le chemin ${choice}. Pour débloquer l'étape 7, rends-toi à : ${target.lat.toFixed(6)}, ${target.lon.toFixed(6)}.`);
+    startTracking(target);
+  }
+
+  // choice handlers
+  document.getElementById('choice1').addEventListener('click', () => openLinkAndBegin(1));
+  document.getElementById('choice2').addEventListener('click', () => openLinkAndBegin(2));
+
+  // helper distance function
+  function distanceMeters(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const toRad = a => a * Math.PI / 180;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)*Math.sin(dLon/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+})();
+</script>
+</body>
+</html>
